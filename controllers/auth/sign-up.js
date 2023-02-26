@@ -3,6 +3,8 @@ const { UserModel } = require("../../models");
 const bcrypt = require("bcrypt");
 const { createAccessToken } = require("../../services/jwt");
 const gravatar = require("gravatar");
+const { nanoid } = require("nanoid");
+const { sendVerificationLetter } = require("../../services/email");
 
 const signUp = async (req, res, next) => {
   const unauthorizedMessage = "User already exists";
@@ -11,6 +13,8 @@ const signUp = async (req, res, next) => {
 
   const avatarURL = gravatar.url(email);
 
+  const emailVerificationToken = nanoid(30);
+
   const passwordHash = await bcrypt.hash(password, 10);
 
   const userInstance = await UserModel.create({
@@ -18,9 +22,12 @@ const signUp = async (req, res, next) => {
     passwordHash,
     subscription,
     avatarURL,
+    emailVerificationToken,
   }).catch(() => {
-    throw createHttpException(401, unauthorizedMessage);
+    throw createHttpException(409, unauthorizedMessage);
   });
+
+  await sendVerificationLetter(email, emailVerificationToken);
 
   const accessToken = createAccessToken({ userId: userInstance._id });
 
