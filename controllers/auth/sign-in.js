@@ -2,7 +2,6 @@ const { createHttpException } = require("../../helpers");
 const { UserModel } = require("../../models");
 const bcrypt = require("bcrypt");
 const { createAccessToken } = require("../../services/jwt");
-const crypto = require("crypto");
 
 const signIn = async (req, res, next) => {
   const unauthorizedMessage = "Invalid email or password";
@@ -10,6 +9,9 @@ const signIn = async (req, res, next) => {
   const { email, password } = req.body;
 
   const userInstance = await UserModel.findOne({ email });
+  if (!userInstance.isEmailVerified) {
+    throw createHttpException(401, "Email not verified");
+  }
   if (userInstance === null) {
     throw createHttpException(401, unauthorizedMessage);
   }
